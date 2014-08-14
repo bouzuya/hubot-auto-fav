@@ -1,6 +1,6 @@
 {
   "name": "hubot-auto-fav",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A Hubot script for favoriting some tweets automatic.",
   "main": "index.js",
   "scripts": {
