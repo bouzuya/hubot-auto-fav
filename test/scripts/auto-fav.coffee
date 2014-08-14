@@ -1,17 +1,26 @@
-require '../helper'
+{Robot, User, TextMessage} = require 'hubot'
+assert = require 'power-assert'
+path = require 'path'
+sinon = require 'sinon'
 {Promise} = require 'q'
 
 describe 'auto-fav', ->
   beforeEach (done) ->
-    Twitter = require '../../src/scripts/twitter'
+    @sinon = sinon.sandbox.create()
+    # for warning: possible EventEmitter memory leak detected.
+    # process.on 'uncaughtException'
+    @sinon.stub process, 'on', -> null
+    # config
     @originalApiInterval = process.env.HUBOT_AUTO_FAV_API_INTERVAL
-    process.env.HUBOT_AUTO_FAV_API_INTERVAL = 0
     @originalKeywords = process.env.HUBOT_AUTO_FAV_KEYWORDS
-    process.env.HUBOT_AUTO_FAV_KEYWORDS = '["#hitoridokusho"]'
     @originalInterval = process.env.HUBOT_AUTO_FAV_INTERVAL
-    process.env.HUBOT_AUTO_FAV_INTERVAL = 10
     @originalRoom = process.env.HUBOT_AUTO_FAV_ROOM
+    process.env.HUBOT_AUTO_FAV_API_INTERVAL = 0
+    process.env.HUBOT_AUTO_FAV_KEYWORDS = '["#hitoridokusho"]'
+    process.env.HUBOT_AUTO_FAV_INTERVAL = 10
     process.env.HUBOT_AUTO_FAV_ROOM = 'hitoridokusho'
+    # twitter
+    Twitter = require '../../src/twitter'
     @searchResult =
       statuses: [
         user: { screen_name: 'bouzuya' }
@@ -20,33 +29,36 @@ describe 'auto-fav', ->
       ]
     @sinon.stub Twitter.prototype, 'createFavorite', (params, callback) =>
       @searchResult.statuses[0].favorited = true
-      callback(@createFavoriteResult)
+      callback({})
     @sinon.stub Twitter.prototype, 'search', (keyword, options, callback) =>
       callback(@searchResult)
-    @kakashi.scripts = [require '../../src/scripts/auto-fav']
-    @kakashi.users = [{ id: 'bouzuya', room: 'hitoridokusho' }]
-    done()
+    # robot
+    @messageRoom = @sinon.spy()
+    @robot = new Robot(path.resolve(__dirname, '..'), 'shell', false, 'hubot')
+    @robot.messageRoom = @messageRoom
+    @robot.adapter.on 'connected', =>
+      @robot.load path.resolve(__dirname, '../../src/scripts')
+      done()
+    @robot.run()
 
   afterEach (done) ->
     process.env.HUBOT_AUTO_FAV_API_INTERVAL = @originalApiInterval
     process.env.HUBOT_AUTO_FAV_KEYWORDS = @originalKeywords
     process.env.HUBOT_AUTO_FAV_INTERVAL = @originalInterval
     process.env.HUBOT_AUTO_FAV_ROOM = @originalRoom
-    @kakashi.stop().then done, done
+    @robot.brain.on 'close', =>
+      @sinon.restore()
+      done()
+    @robot.shutdown()
 
   describe 'start', ->
-    it 'send "https://twitter.com/bouzuya/status/12345"', (done) ->
-      @kakashi
-        .start()
-        .then =>
-          new Promise (resolve, reject) =>
-            setTimeout =>
-              try
-                expect(@kakashi.send.callCount).to.equal(1)
-                expect(@kakashi.send.firstCall.args[1]).to
-                  .equal('https://twitter.com/bouzuya/status/12345')
-                resolve()
-              catch e
-                reject e
-            , 50
-        .then (-> done()), done
+    it 'send "https://twitter.com/bouzuya/status/12345"', ->
+      setTimeout =>
+        try
+          assert @messageRoom.callCount is 1
+          assert @messageRoom.firstCall.args[1] is \
+            'https://twitter.com/bouzuya/status/12345'
+          done()
+        catch e
+          done e
+      , 10

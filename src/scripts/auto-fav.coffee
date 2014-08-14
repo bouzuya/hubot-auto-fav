@@ -22,7 +22,7 @@
 #   bouzuya <m@bouzuya.net>
 #
 {Promise} = require 'q'
-Twitter = require './twitter'
+Twitter = require '../twitter'
 
 module.exports = (robot) ->
 
