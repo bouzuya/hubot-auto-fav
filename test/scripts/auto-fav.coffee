@@ -11,14 +11,13 @@ describe 'auto-fav', ->
     # process.on 'uncaughtException'
     @sinon.stub process, 'on', -> null
     # config
-    @originalApiInterval = process.env.HUBOT_AUTO_FAV_API_INTERVAL
-    @originalKeywords = process.env.HUBOT_AUTO_FAV_KEYWORDS
-    @originalInterval = process.env.HUBOT_AUTO_FAV_INTERVAL
-    @originalRoom = process.env.HUBOT_AUTO_FAV_ROOM
-    process.env.HUBOT_AUTO_FAV_API_INTERVAL = 0
-    process.env.HUBOT_AUTO_FAV_KEYWORDS = '["#hitoridokusho"]'
-    process.env.HUBOT_AUTO_FAV_INTERVAL = 10
-    process.env.HUBOT_AUTO_FAV_ROOM = 'hitoridokusho'
+    @originalEnv = process.env
+    process.env =
+      HUBOT_AUTO_FAV_API_INTERVAL: 0
+      HUBOT_AUTO_FAV_KEYWORDS: '["#hitoridokusho"]'
+      HUBOT_AUTO_FAV_INTERVAL: 10
+      HUBOT_AUTO_FAV_ROOM: 'hitoridokusho'
+      HUBOT_AUTO_FAV_SHOW_DETAIL: null
     # twitter
     Twitter = require '../../src/twitter'
     @searchResult =
@@ -42,17 +41,14 @@ describe 'auto-fav', ->
     @robot.run()
 
   afterEach (done) ->
-    process.env.HUBOT_AUTO_FAV_API_INTERVAL = @originalApiInterval
-    process.env.HUBOT_AUTO_FAV_KEYWORDS = @originalKeywords
-    process.env.HUBOT_AUTO_FAV_INTERVAL = @originalInterval
-    process.env.HUBOT_AUTO_FAV_ROOM = @originalRoom
+    process.env = @originalEnv
     @robot.brain.on 'close', =>
       @sinon.restore()
       done()
     @robot.shutdown()
 
   describe 'start', ->
-    it 'send "https://twitter.com/bouzuya/status/12345"', ->
+    it 'send "https://twitter.com/bouzuya/status/12345"', (done) ->
       setTimeout =>
         try
           assert @messageRoom.callCount is 1
@@ -61,4 +57,4 @@ describe 'auto-fav', ->
           done()
         catch e
           done e
-      , 10
+      , 100
