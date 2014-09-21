@@ -14,6 +14,7 @@
 #  HUBOT_AUTO_FAV_API_SECRET
 #  HUBOT_AUTO_FAV_ACCESS_TOKEN
 #  HUBOT_AUTO_FAV_ACCESS_TOKEN_SECRET
+#  HUBOT_AUTO_FAV_SHOW_DETAIL
 #
 # Commands:
 #   None
@@ -26,6 +27,7 @@ Twitter = require '../twitter'
 
 module.exports = (robot) ->
 
+  showDetail = process.env.HUBOT_AUTO_FAV_SHOW_DETAIL
   apiInterval = parseInt(process.env.HUBOT_AUTO_FAV_API_INTERVAL ? '1000', 10)
   interval = parseInt(process.env.HUBOT_AUTO_FAV_INTERVAL ? '60000', 10)
   keywords = JSON.parse(process.env.HUBOT_AUTO_FAV_KEYWORDS ? '[]').map (k) ->
@@ -65,6 +67,15 @@ module.exports = (robot) ->
   tweetUrl = (tweet) ->
     "https://twitter.com/#{tweet.user.screen_name}/status/#{tweet.id_str}"
 
+  tweetDetail = (tweet) ->
+    """
+    #{tweet.user.screen_name}: #{tweet.text}
+    #{tweetUrl(tweet)}
+    """
+
+  format = (tweet) ->
+    if showDetail then tweetDetail(tweet) else tweetUrl(tweet)
+
   searchAndFavorite = (keyword) ->
     options = if keyword.sinceId? then { since_id: keyword.sinceId } else {}
     search keyword.q, options
@@ -80,7 +91,7 @@ module.exports = (robot) ->
           favorite tweet.id_str
             .then ->
               robot.logger.debug "auto-fav favorite id_str=#{tweet.id_str}"
-              robot.messageRoom room, tweetUrl(tweet) if room?
+              robot.messageRoom room, format(tweet) if room?
       .then null, (err) ->
         robot.logger.error err
 
