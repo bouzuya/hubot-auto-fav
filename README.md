@@ -11,10 +11,7 @@ or
     $ # TAG is the package version you need.
     $ npm install 'git://github.com/bouzuya/hubot-auto-fav.git#TAG'
 
-## Commands
-
-    bouzuya> hubot help auto-fav
-    hubot> auto-fav - favorite tweets automatic.
+## Configuration
 
 See [`src/scripts/auto-fav.coffee`](src/scripts/auto-fav.coffee) for full documentation.
 
